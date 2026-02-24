@@ -874,7 +874,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Handle social sharing
   function handleShare(platform, activityName, details) {
-    const url = window.location.origin + window.location.pathname;
+    const baseUrl = window.location.origin + window.location.pathname;
+    // Create a more specific URL by adding the activity name as a hash
+    const url = `${baseUrl}#${encodeURIComponent(activityName)}`;
     const text = `Check out ${activityName} at Mergington High School! ${details.description}`;
     const scheduleText = formatSchedule(details);
     const fullText = `${text} Schedule: ${scheduleText}`;
@@ -926,7 +928,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Close share menus when clicking outside
+  // Close share menus when clicking outside - single listener
   document.addEventListener("click", () => {
     document.querySelectorAll(".share-options").forEach((menu) => {
       menu.classList.add("hidden");
