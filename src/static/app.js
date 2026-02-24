@@ -569,6 +569,19 @@ document.addEventListener("DOMContentLoaded", () => {
         `
         }
       </div>
+      <div class="share-section">
+        <button class="share-button" data-activity="${name}">
+          <span class="share-icon">🔗</span>
+          <span>Share Activity</span>
+        </button>
+        <div class="share-options hidden" data-activity="${name}">
+          <button class="share-option" data-platform="facebook" data-activity="${name}">Facebook</button>
+          <button class="share-option" data-platform="twitter" data-activity="${name}">Twitter</button>
+          <button class="share-option" data-platform="linkedin" data-activity="${name}">LinkedIn</button>
+          <button class="share-option" data-platform="email" data-activity="${name}">Email</button>
+          <button class="share-option" data-platform="copy" data-activity="${name}">Copy Link</button>
+        </div>
+      </div>
     `;
 
     // Add click handlers for delete buttons
@@ -586,6 +599,34 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    // Add click handler for share button
+    const shareButton = activityCard.querySelector(".share-button");
+    const shareOptions = activityCard.querySelector(".share-options");
+    
+    shareButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Close all other share menus
+      document.querySelectorAll(".share-options").forEach((menu) => {
+        if (menu !== shareOptions) {
+          menu.classList.add("hidden");
+        }
+      });
+      // Toggle current menu
+      shareOptions.classList.toggle("hidden");
+    });
+
+    // Add click handlers for share options
+    const shareOptionButtons = activityCard.querySelectorAll(".share-option");
+    shareOptionButtons.forEach((button) => {
+      button.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const platform = button.dataset.platform;
+        const activityName = button.dataset.activity;
+        handleShare(platform, activityName, details);
+        shareOptions.classList.add("hidden");
+      });
+    });
 
     activitiesList.appendChild(activityCard);
   }
@@ -810,6 +851,89 @@ document.addEventListener("DOMContentLoaded", () => {
       messageDiv.classList.add("hidden");
     }, 5000);
   }
+
+  // Fallback clipboard copy function for HTTP or older browsers
+  function copyToClipboardFallback(text) {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    
+    try {
+      document.execCommand("copy");
+      showMessage("Link copied to clipboard!", "success");
+    } catch (err) {
+      console.error("Fallback copy failed:", err);
+      showMessage("Failed to copy link. Please copy manually.", "error");
+    } finally {
+      document.body.removeChild(textarea);
+    }
+  }
+
+  // Handle social sharing
+  function handleShare(platform, activityName, details) {
+    const baseUrl = window.location.origin + window.location.pathname;
+    // Create a more specific URL by adding the activity name as a hash
+    const url = `${baseUrl}#${encodeURIComponent(activityName)}`;
+    const text = `Check out ${activityName} at Mergington High School! ${details.description}`;
+    const scheduleText = formatSchedule(details);
+    const fullText = `${text} Schedule: ${scheduleText}`;
+
+    switch (platform) {
+      case "facebook":
+        window.open(
+          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(fullText)}`,
+          "_blank",
+          "width=600,height=400"
+        );
+        break;
+      case "twitter":
+        window.open(
+          `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText)}&url=${encodeURIComponent(url)}`,
+          "_blank",
+          "width=600,height=400"
+        );
+        break;
+      case "linkedin":
+        window.open(
+          `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
+          "_blank",
+          "width=600,height=400"
+        );
+        break;
+      case "email":
+        const subject = `Check out ${activityName} at Mergington High School`;
+        const body = `${fullText}\n\nLearn more: ${url}`;
+        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        break;
+      case "copy":
+        const shareText = `${fullText}\n\nLearn more: ${url}`;
+        
+        // Try modern Clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(shareText).then(() => {
+            showMessage("Link copied to clipboard!", "success");
+          }).catch((err) => {
+            console.error("Failed to copy:", err);
+            // Fallback to textarea method
+            copyToClipboardFallback(shareText);
+          });
+        } else {
+          // Fallback for HTTP or older browsers
+          copyToClipboardFallback(shareText);
+        }
+        break;
+    }
+  }
+
+  // Close share menus when clicking outside - single listener
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".share-options").forEach((menu) => {
+      menu.classList.add("hidden");
+    });
+  });
 
   // Handle form submission
   signupForm.addEventListener("submit", async (event) => {
