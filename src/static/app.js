@@ -852,6 +852,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 5000);
   }
 
+  // Fallback clipboard copy function for HTTP or older browsers
+  function copyToClipboardFallback(text) {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    
+    try {
+      document.execCommand("copy");
+      showMessage("Link copied to clipboard!", "success");
+    } catch (err) {
+      console.error("Fallback copy failed:", err);
+      showMessage("Failed to copy link. Please copy manually.", "error");
+    } finally {
+      document.body.removeChild(textarea);
+    }
+  }
+
   // Handle social sharing
   function handleShare(platform, activityName, details) {
     const url = window.location.origin + window.location.pathname;
@@ -888,12 +908,20 @@ document.addEventListener("DOMContentLoaded", () => {
         break;
       case "copy":
         const shareText = `${fullText}\n\nLearn more: ${url}`;
-        navigator.clipboard.writeText(shareText).then(() => {
-          showMessage("Link copied to clipboard!", "success");
-        }).catch((err) => {
-          console.error("Failed to copy:", err);
-          showMessage("Failed to copy link", "error");
-        });
+        
+        // Try modern Clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(shareText).then(() => {
+            showMessage("Link copied to clipboard!", "success");
+          }).catch((err) => {
+            console.error("Failed to copy:", err);
+            // Fallback to textarea method
+            copyToClipboardFallback(shareText);
+          });
+        } else {
+          // Fallback for HTTP or older browsers
+          copyToClipboardFallback(shareText);
+        }
         break;
     }
   }
