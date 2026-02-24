@@ -569,6 +569,19 @@ document.addEventListener("DOMContentLoaded", () => {
         `
         }
       </div>
+      <div class="share-section">
+        <button class="share-button" data-activity="${name}">
+          <span class="share-icon">🔗</span>
+          <span>Share Activity</span>
+        </button>
+        <div class="share-options hidden" data-activity="${name}">
+          <button class="share-option" data-platform="facebook" data-activity="${name}">Facebook</button>
+          <button class="share-option" data-platform="twitter" data-activity="${name}">Twitter</button>
+          <button class="share-option" data-platform="linkedin" data-activity="${name}">LinkedIn</button>
+          <button class="share-option" data-platform="email" data-activity="${name}">Email</button>
+          <button class="share-option" data-platform="copy" data-activity="${name}">Copy Link</button>
+        </div>
+      </div>
     `;
 
     // Add click handlers for delete buttons
@@ -586,6 +599,34 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    // Add click handler for share button
+    const shareButton = activityCard.querySelector(".share-button");
+    const shareOptions = activityCard.querySelector(".share-options");
+    
+    shareButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Close all other share menus
+      document.querySelectorAll(".share-options").forEach((menu) => {
+        if (menu !== shareOptions) {
+          menu.classList.add("hidden");
+        }
+      });
+      // Toggle current menu
+      shareOptions.classList.toggle("hidden");
+    });
+
+    // Add click handlers for share options
+    const shareOptionButtons = activityCard.querySelectorAll(".share-option");
+    shareOptionButtons.forEach((button) => {
+      button.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const platform = button.dataset.platform;
+        const activityName = button.dataset.activity;
+        handleShare(platform, activityName, details);
+        shareOptions.classList.add("hidden");
+      });
+    });
 
     activitiesList.appendChild(activityCard);
   }
@@ -810,6 +851,59 @@ document.addEventListener("DOMContentLoaded", () => {
       messageDiv.classList.add("hidden");
     }, 5000);
   }
+
+  // Handle social sharing
+  function handleShare(platform, activityName, details) {
+    const url = window.location.origin + window.location.pathname;
+    const text = `Check out ${activityName} at Mergington High School! ${details.description}`;
+    const scheduleText = formatSchedule(details);
+    const fullText = `${text} Schedule: ${scheduleText}`;
+
+    switch (platform) {
+      case "facebook":
+        window.open(
+          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(fullText)}`,
+          "_blank",
+          "width=600,height=400"
+        );
+        break;
+      case "twitter":
+        window.open(
+          `https://twitter.com/intent/tweet?text=${encodeURIComponent(fullText)}&url=${encodeURIComponent(url)}`,
+          "_blank",
+          "width=600,height=400"
+        );
+        break;
+      case "linkedin":
+        window.open(
+          `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
+          "_blank",
+          "width=600,height=400"
+        );
+        break;
+      case "email":
+        const subject = `Check out ${activityName} at Mergington High School`;
+        const body = `${fullText}\n\nLearn more: ${url}`;
+        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        break;
+      case "copy":
+        const shareText = `${fullText}\n\nLearn more: ${url}`;
+        navigator.clipboard.writeText(shareText).then(() => {
+          showMessage("Link copied to clipboard!", "success");
+        }).catch((err) => {
+          console.error("Failed to copy:", err);
+          showMessage("Failed to copy link", "error");
+        });
+        break;
+    }
+  }
+
+  // Close share menus when clicking outside
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".share-options").forEach((menu) => {
+      menu.classList.add("hidden");
+    });
+  });
 
   // Handle form submission
   signupForm.addEventListener("submit", async (event) => {
